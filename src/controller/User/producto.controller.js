@@ -39,7 +39,7 @@ const productId = async (req, res) => {
         }
 
         // Cambia a findOne
-        const product = await Productos.findOne({ _id: id });
+        const product = await Productos.findById({ _id: id });
         console.log("Producto encontrado:", product); // Verificar el producto encontrado
 
         if (!product) {
@@ -47,15 +47,34 @@ const productId = async (req, res) => {
             return;
         }
 
-        res.status(200).send(product);
+        res.status(200).json(product);
     } catch (error) {
         console.error("Error al buscar el producto:", error); // Mejor manejo del error
         res.status(500).json({ message: error.message });
     }
 };
+const productByTipoId = async (req, res) => {
+  try {
+    const { tipoId } = req.params;
+
+    const products = await Productos.find({ tipoId }).populate('tipo');
+
+    if (!products || products.length === 0) {
+      return res.status(404).send("No hay productos para este tipo");
+    }
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error("Error al buscar productos por tipoId:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 
 module.exports ={
     productoUser,
     productxName,
-    productId
+    productId,
+    productByTipoId
 }
