@@ -176,9 +176,66 @@ const productName = async (req, res) => {
 //         res.status(500).json({ message: error.message });
 //     }
 // };
+// const createProduct = async (req, res) => {
+//     try {
+//         const { name, price, brand, tipoId, sise, color, stock, description } = req.body;
+
+//         // Verifica si el producto ya existe
+//         const existingProduct = await Productos.findOne({ name });
+//         if (existingProduct) {
+//             return res.status(400).send("El producto ya existe");
+//         }
+
+//         // Verifica si el tipo de producto existe
+//         const tipo = await TipoProductos.findById(tipoId);
+//         if (!tipo) {
+//             return res.status(400).send("El tipo de producto no existe");
+//         }
+
+//         // Sube cada imagen a Cloudinary y almacena sus URLs en un arreglo
+//         const imageUrls = await Promise.all(req.files.map((file) => {
+//             return new Promise((resolve, reject) => {
+//                 const stream = cloudinary.uploader.upload_stream(
+//                     { folder: 'Carpeta_tienda' },
+//                     (error, result) => {
+//                         if (error) {
+//                             reject(error);
+//                         } else {
+//                             resolve(result.secure_url);
+//                         }
+//                     }
+//                 );
+//                 stream.end(file.buffer); // Asegura que se esté enviando el buffer
+//             });
+//         }));
+
+//         // Divide las cadenas de sise y color en arreglos
+//         const sizesArray = Array.isArray(sise) ? sise : sise.split(',').map(size => size.trim());
+//         const colorsArray = Array.isArray(color) ? color : color.split(',').map(col => col.trim());
+
+//         // Crea el producto asociándolo al tipo correspondiente
+//         const product = new Productos({
+//             name,
+//             price,
+//             brand,
+//             description,
+//             stock,
+//             sise: sizesArray,
+//             color: colorsArray,
+//             image: imageUrls, 
+//             tipo: tipoId,
+//         });
+
+//         await product.save();
+//         res.status(200).send(product);
+//     } catch (error) {
+//         console.log(error);
+//         res.status(500).json({ message: error.message });
+//     }
+// };
 const createProduct = async (req, res) => {
     try {
-        const { name, price, brand, tipoId, sise, color, stock, description } = req.body;
+        const { name, price, brand, tipoId, color, stock, description } = req.body;
 
         // Verifica si el producto ya existe
         const existingProduct = await Productos.findOne({ name });
@@ -193,36 +250,40 @@ const createProduct = async (req, res) => {
         }
 
         // Sube cada imagen a Cloudinary y almacena sus URLs en un arreglo
-        const imageUrls = await Promise.all(req.files.map((file) => {
-            return new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream(
-                    { folder: 'Carpeta_tienda' },
-                    (error, result) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve(result.secure_url);
+        let imageUrls = [];
+
+        if (req.files && req.files.length > 0) {
+            imageUrls = await Promise.all(req.files.map((file) => {
+                return new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        { folder: 'Carpeta_tienda' },
+                        (error, result) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                resolve(result.secure_url);
+                            }
                         }
-                    }
-                );
-                stream.end(file.buffer); // Asegura que se esté enviando el buffer
-            });
-        }));
+                    );
+                    stream.end(file.buffer);
+                });
+            }));
+        }
 
-        // Divide las cadenas de sise y color en arreglos
-        const sizesArray = Array.isArray(sise) ? sise : sise.split(',').map(size => size.trim());
-        const colorsArray = Array.isArray(color) ? color : color.split(',').map(col => col.trim());
+        // Procesa color como arreglo
+        const colorsArray = Array.isArray(color)
+            ? color
+            : (typeof color === 'string' ? color.split(',').map(col => col.trim()) : []);
 
-        // Crea el producto asociándolo al tipo correspondiente
+        // Crea el producto
         const product = new Productos({
             name,
             price,
             brand,
             description,
             stock,
-            sise: sizesArray,
             color: colorsArray,
-            image: imageUrls, 
+            image: imageUrls,
             tipo: tipoId,
         });
 
